@@ -9,22 +9,28 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        Role::create([
-            'name' => 'Admin',
-            'slug' => 'admin',
-            'description' => 'Full system access'
-        ]);
+        Role::updateOrCreate(
+            ['slug' => 'admin'],
+            [
+                'name' => 'Admin',
+                'description' => 'Full system access',
+            ]
+        );
 
-        Role::create([
-            'name' => 'Manager',
-            'slug' => 'manager',
-            'description' => 'Manage company operations'
-        ]);
+        Role::updateOrCreate(
+            ['slug' => 'manager'],
+            [
+                'name' => 'Manager',
+                'description' => 'Manage company operations',
+            ]
+        );
 
-        Role::create([
-            'name' => 'Employee',
-            'slug' => 'employee',
-            'description' => 'Normal employee access'
-        ]);
+        Role::updateOrCreate(
+            ['slug' => 'employee'],
+            [
+                'name' => 'Employee',
+                'description' => 'Normal employee access',
+            ]
+        );
     }
 }
