@@ -1,85 +1,119 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { logoutUser } from "../../services/authService";
+import { Link } from "react-router-dom";
+import { Search, Menu } from "lucide-react";
 
-const Navbar = () => {
-  const { isAuthenticated, user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch (error) {
-      console.error(error);
-    }
-
-    logout();
-    navigate("/");
-  };
-
+function Navbar() {
   return (
-    <nav className="bg-blue-600 shadow-md">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <nav className="sticky top-0 z-50 bg-white shadow-md">
+      <div className="max-w-7xl mx-auto px-6">
 
-        <Link
-          to="/"
-          className="text-2xl font-bold text-white"
-        >
-          💊 AI Medicine Finder
-        </Link>
+        <div className="flex justify-between items-center h-20">
 
-        <div className="flex items-center gap-6 text-white font-medium">
+          {/* Logo */}
 
-          <Link to="/" className="hover:text-gray-200">
-            Home
+          <Link
+            to="/"
+            className="flex items-center gap-3"
+          >
+            <div className="bg-blue-600 text-white p-2 rounded-xl text-xl">
+              💊
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold text-blue-700">
+                AI Medicine Finder
+              </h1>
+
+              <p className="text-xs text-gray-500">
+                Smart Healthcare System
+              </p>
+            </div>
           </Link>
 
-          <Link to="/search" className="hover:text-gray-200">
-            Search
-          </Link>
+          {/* Menu */}
 
-          {isAuthenticated ? (
-            <>
-              <Link
-                to="/dashboard"
-                className="hover:text-gray-200"
-              >
-                Dashboard
-              </Link>
+          <div className="hidden lg:flex items-center gap-8">
 
-              <span className="text-gray-200">
-                Hi, {user?.name}
-              </span>
+            <Link
+              to="/"
+              className="hover:text-blue-600 font-medium"
+            >
+              Home
+            </Link>
 
-              <button
-                onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="hover:text-gray-200"
-              >
-                Login
-              </Link>
+            <Link
+              to="/search"
+              className="hover:text-blue-600 font-medium"
+            >
+              Medicines
+            </Link>
 
-              <Link
-                to="/register"
-                className="hover:text-gray-200"
-              >
-                Register
-              </Link>
-            </>
-          )}
+            <Link
+              to="/pharmacies"
+              className="hover:text-blue-600 font-medium"
+            >
+              Pharmacies
+            </Link>
+
+            <Link
+              to="/ai"
+              className="hover:text-blue-600 font-medium"
+            >
+              AI Assistant
+            </Link>
+
+            <Link
+              to="/about"
+              className="hover:text-blue-600 font-medium"
+            >
+              About
+            </Link>
+
+            <Link
+              to="/contact"
+              className="hover:text-blue-600 font-medium"
+            >
+              Contact
+            </Link>
+
+          </div>
+
+          {/* Right Side */}
+
+          <div className="flex items-center gap-4">
+
+            <button className="hidden md:flex items-center gap-2 border px-4 py-2 rounded-lg hover:bg-gray-100">
+
+              <Search size={18} />
+
+              Search
+
+            </button>
+
+            <Link
+              to="/login"
+              className="text-blue-600 font-semibold"
+            >
+              Login
+            </Link>
+
+            <Link
+              to="/register"
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              Register
+            </Link>
+
+            <button className="lg:hidden">
+              <Menu size={28} />
+            </button>
+
+          </div>
 
         </div>
+
       </div>
     </nav>
   );
-};
+}
 
 export default Navbar;
