@@ -18,13 +18,16 @@ class AIController extends Controller
     public function chat(Request $request)
     {
         $request->validate([
-            "message" => "required|string"
+            'message' => 'required|string'
         ]);
 
-        return response()->json(
-            $this->aiService->reply(
-                $request->message
-            )
+        $response = $this->aiService->reply(
+            $request->message
         );
+
+        return response()->json([
+            'success' => true,
+            'data' => $response
+        ]);
     }
 }

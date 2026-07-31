@@ -10,6 +10,9 @@ use Carbon\Carbon;
 
 class DashboardService
 {
+    /**
+     * Protected Dashboard Data
+     */
     public function getDashboardData(): array
     {
         return [
@@ -43,6 +46,24 @@ class DashboardService
             'recent_pharmacies' => Pharmacy::latest()
                 ->take(5)
                 ->get(),
+        ];
+    }
+
+    /**
+     * Public Homepage Statistics
+     */
+    public function getHomeStats(): array
+    {
+        return [
+
+            'total_users' => User::count(),
+
+            'total_medicines' => Medicine::count(),
+
+            'total_pharmacies' => Pharmacy::count(),
+
+            'inventory_items' => Inventory::count(),
+
         ];
     }
 }

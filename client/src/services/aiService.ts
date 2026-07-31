@@ -1,17 +1,22 @@
 import api from "./api";
 
+export interface AIRequest {
+  message: string;
+}
+
 export interface AIResponse {
-  success: boolean;
   answer: string;
-  medicines: any[];
+  medicines?: any[];
+  pharmacies?: any[];
 }
 
 export const askAI = async (
   message: string
 ): Promise<AIResponse> => {
+
   const response = await api.post("/ai/chat", {
     message,
   });
 
-  return response.data;
+  return response.data.data;
 };

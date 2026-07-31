@@ -15,11 +15,26 @@ class DashboardController extends Controller
         $this->dashboardService = $dashboardService;
     }
 
+    /**
+     * Protected Dashboard
+     * Requires login
+     */
     public function index(): JsonResponse
     {
         return response()->json([
             'message' => 'Dashboard data fetched successfully.',
             'data' => $this->dashboardService->getDashboardData(),
         ]);
+    }
+
+    /**
+     * Public Homepage Statistics
+     * No login required
+     */
+    public function publicStats(): JsonResponse
+    {
+        return response()->json(
+            $this->dashboardService->getHomeStats()
+        );
     }
 }

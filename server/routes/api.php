@@ -10,6 +10,10 @@ use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\PharmacyController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\DashboardController;
+
+
+// Public Home Statistics
+Route::get('/home/stats', [DashboardController::class, 'publicStats']);
 /*
 |--------------------------------------------------------------------------
 | Test Route
