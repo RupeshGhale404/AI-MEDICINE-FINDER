@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Services\AIService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Throwable;
 
 class AIController extends Controller
 {
@@ -15,19 +19,40 @@ class AIController extends Controller
         $this->aiService = $aiService;
     }
 
-    public function chat(Request $request)
+    public function chat(Request $request): JsonResponse
     {
-        $request->validate([
-            'message' => 'required|string'
+        $validated = $request->validate([
+            "messages" => "required|array|min:1|max:40",
+            "messages.*.role" => [
+                "required",
+                "string",
+                Rule::in(["user", "assistant", "system"]),
+            ],
+            "messages.*.content" => "required|string|max:4000",
         ]);
 
-        $response = $this->aiService->reply(
-            $request->message
-        );
+        try {
 
-        return response()->json([
-            'success' => true,
-            'data' => $response
-        ]);
+            $reply = $this->aiService->reply($validated["messages"]);
+
+            return response()->json([
+                "success" => true,
+                "data" => $reply,
+            ]);
+
+        } catch (Throwable $e) {
+
+            Log::error($e);
+
+            return response()->json([
+                "success" => false,
+                "error" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine(),
+                "trace" => app()->environment("local")
+                    ? explode("\n", $e->getTraceAsString())
+                    : [],
+            ], 500);
+        }
     }
 }
