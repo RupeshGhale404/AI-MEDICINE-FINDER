@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
 import ChatSidebar from "./ChatSidebar";
-import SuggestedQuestions from "./SuggestedQuestions";
 import TypingIndicator from "./TypingIndicator";
 
 import { askAI } from "../../services/aiService";
@@ -12,6 +11,8 @@ import type {
   AIMessage,
   ChatMessage,
   Conversation,
+  Medicine,
+  Pharmacy,
 } from "../../types/AI";
 
 const createId = () =>
@@ -19,49 +20,58 @@ const createId = () =>
 
 export default function ChatWindow() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] =
-    useState<string | null>(null);
-
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // ✅ Location state must be at the top level
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const activeConversation = useMemo(() => {
-    return (
-      conversations.find(
-        (conversation) =>
-          conversation.id === activeConversationId
-      ) ?? null
-    );
-  }, [conversations, activeConversationId]);
+  const activeConversation = useMemo(
+    () => conversations.find((c) => c.id === activeConversationId) ?? null,
+    [conversations, activeConversationId]
+  );
 
-  /* -------------------------------- */
-  /* Load conversations               */
-  /* -------------------------------- */
-
+  /* ── Get user location (once) ───────────────────────────────── */
   useEffect(() => {
-    const saved = localStorage.getItem(
-      "medicine-ai-conversations"
-    );
+    if (!navigator.geolocation) return;
 
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => {
+        // User denied or error → pharmacies still work, just not sorted by distance
+      },
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  }, []);
+
+  /* ── Load conversations ─────────────────────────────────────── */
+  useEffect(() => {
+    const saved = localStorage.getItem("medicine-ai-conversations");
     if (!saved) return;
 
     try {
       const chats: Conversation[] = JSON.parse(saved);
-
       setConversations(chats);
-
-      if (chats.length) {
+      if (chats.length > 0) {
         setActiveConversationId(chats[0].id);
       }
-    } catch {}
+    } catch {
+      // ignore corrupted data
+    }
   }, []);
 
-  /* -------------------------------- */
-  /* Save conversations               */
-  /* -------------------------------- */
-
+  /* ── Persist conversations ──────────────────────────────────── */
   useEffect(() => {
     localStorage.setItem(
       "medicine-ai-conversations",
@@ -69,23 +79,14 @@ export default function ChatWindow() {
     );
   }, [conversations]);
 
-  /* -------------------------------- */
-  /* Auto scroll                      */
-  /* -------------------------------- */
-
+  /* ── Auto-scroll ────────────────────────────────────────────── */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConversation?.messages, typing]);
 
-  /* -------------------------------- */
-  /* New Chat                         */
-  /* -------------------------------- */
-
+  /* ── New Chat ───────────────────────────────────────────────── */
   const startNewChat = () => {
     const id = createId();
-
     const chat: Conversation = {
       id,
       title: "New Chat",
@@ -94,246 +95,41 @@ export default function ChatWindow() {
       messages: [],
     };
 
-    setConversations((prev) => [
-      chat,
-      ...prev,
-    ]);
-
+    setConversations((prev) => [chat, ...prev]);
     setActiveConversationId(id);
   };
 
-  /* -------------------------------- */
-  /* Rename                           */
-  /* -------------------------------- */
-
+  /* ── Rename ─────────────────────────────────────────────────── */
   const renameConversation = (id: string) => {
     const title = prompt("Conversation name");
-
-    if (!title) return;
+    if (!title?.trim()) return;
 
     setConversations((prev) =>
       prev.map((chat) =>
-        chat.id === id
-          ? {
-              ...chat,
-              title,
-            }
-          : chat
+        chat.id === id ? { ...chat, title: title.trim() } : chat
       )
     );
   };
 
-  /* -------------------------------- */
-  /* Delete                           */
-  /* -------------------------------- */
-
+  /* ── Delete ─────────────────────────────────────────────────── */
   const deleteConversation = (id: string) => {
-    const chats = conversations.filter(
-      (chat) => chat.id !== id
-    );
-
-    setConversations(chats);
-
-    if (activeConversationId === id) {
-      setActiveConversationId(
-        chats.length ? chats[0].id : null
-      );
-    }
-  };
-  /* -------------------------------- */
-/* Stream AI Response               */
-/* -------------------------------- */
-
-const streamMessage = async (
-  text: string,
-  conversationId: string,
-  medicines: any[] = [],
-  pharmacies: any[] = []
-) => {
-  const assistantId = createId();
-
-  // Create empty AI message first
-  setConversations((prev) =>
-    prev.map((chat) =>
-      chat.id === conversationId
-        ? {
-            ...chat,
-            messages: [
-              ...chat.messages,
-              {
-                id: assistantId,
-                sender: "assistant",
-                message: "",
-                medicines: [],
-                pharmacies: [],
-              },
-            ],
-          }
-        : chat
-    )
-  );
-
-  const words = text.split(" ");
-
-  let current = "";
-
-  for (let i = 0; i < words.length; i++) {
-    current += words[i] + " ";
-
-    await new Promise((r) => setTimeout(r, 6));
-
-    setConversations((prev) =>
-      prev.map((chat) =>
-        chat.id === conversationId
-          ? {
-              ...chat,
-              messages: chat.messages.map((m) =>
-                m.id === assistantId
-                  ? {
-                      ...m,
-                      message: current,
-                      medicines:
-                        i === words.length - 1
-                          ? medicines
-                          : [],
-                      pharmacies:
-                        i === words.length - 1
-                          ? pharmacies
-                          : [],
-                    }
-                  : m
-              ),
-            }
-          : chat
-      )
-    );
-  };
-};
-
-/* -------------------------------- */
-/* Send Message                     */
-/* -------------------------------- */
-
-const sendMessage = async (text: string) => {
-  if (!text.trim()) return;
-
-  let conversationId = activeConversationId;
-
-  /* Create chat if none exists */
-
-  if (!conversationId) {
-    conversationId = createId();
-
-    const chat: Conversation = {
-      id: conversationId,
-      title:
-        text.length > 35
-          ? text.substring(0, 35) + "..."
-          : text,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      messages: [],
-    };
-
-    setConversations((prev) => [
-      chat,
-      ...prev,
-    ]);
-
-    setActiveConversationId(conversationId);
-  }
-
-  const userMessage: ChatMessage = {
-    id: createId(),
-    sender: "user",
-    message: text,
+    setConversations((prev) => {
+      const next = prev.filter((chat) => chat.id !== id);
+      if (activeConversationId === id) {
+        setActiveConversationId(next.length ? next[0].id : null);
+      }
+      return next;
+    });
   };
 
-  const currentChat =
-    conversations.find(
-      (c) => c.id === conversationId
-    ) ??
-    {
-      id: conversationId,
-      title: "",
-      createdAt: "",
-      updatedAt: "",
-      messages: [],
-    };
-
-  /* Show user message instantly */
-
-  setConversations((prev) =>
-    prev.map((chat) =>
-      chat.id === conversationId
-        ? {
-            ...chat,
-            updatedAt: new Date().toISOString(),
-            title:
-              chat.title === "New Chat"
-                ? text.length > 35
-                  ? text.substring(0, 35) + "..."
-                  : text
-                : chat.title,
-            messages: [
-              ...chat.messages,
-              userMessage,
-            ],
-          }
-        : chat
-    )
-  );
-
-  setTyping(true);
-
-  try {
-    const aiMessages: AIMessage[] = [
-      {
-        role: "system",
-        content: `You are AI Medicine Finder.
-
-Rules:
-
-- Remember previous conversation.
-- Answer follow-up questions.
-- Never forget earlier symptoms.
-- Reply in Markdown.
-- Be concise.
-- Recommend only medicines from the backend.
-- Explain possible causes, medicines and warning signs.`,
-      },
-
-      ...currentChat.messages.map((message): AIMessage => ({
-        role:
-          message.sender === "user"
-            ? "user"
-            : "assistant",
-        content: message.message,
-      })),
-
-      {
-        role: "user" as const,
-        content: text,
-      },
-    ];
-
-    const response = await askAI(aiMessages);
-
-    await streamMessage(
-      response.answer,
-      conversationId,
-      response.medicines ?? [],
-      response.pharmacies ?? []
-    );
-  } catch (error) {
-    console.error(error);
-
-    const assistantMessage: ChatMessage = {
-      id: createId(),
-      sender: "assistant",
-      message:
-        "❌ Unable to contact the AI server.",
-    };
+  /* ── Stream AI response (word-by-word) ──────────────────────── */
+  const streamMessage = async (
+    text: string,
+    conversationId: string,
+    medicines: Medicine[] = [],
+    pharmacies: Pharmacy[] = []
+  ) => {
+    const assistantId = createId();
 
     setConversations((prev) =>
       prev.map((chat) =>
@@ -342,155 +138,238 @@ Rules:
               ...chat,
               messages: [
                 ...chat.messages,
-                assistantMessage,
+                {
+                  id: assistantId,
+                  sender: "assistant" as const,
+                  message: "",
+                  medicines: [],
+                  pharmacies: [],
+                },
               ],
             }
           : chat
       )
     );
-  } finally {
-    setTyping(false);
-  }
-};
-const filteredConversations = conversations.filter((chat) => {
-  if (!searchTerm) return true;
 
-  const q = searchTerm.toLowerCase();
+    const words = text.split(" ");
+    let current = "";
 
+    for (let i = 0; i < words.length; i++) {
+      current += (i === 0 ? "" : " ") + words[i];
+
+      await new Promise((r) => setTimeout(r, 8));
+
+      const isLast = i === words.length - 1;
+
+      setConversations((prev) =>
+        prev.map((chat) =>
+          chat.id === conversationId
+            ? {
+                ...chat,
+                messages: chat.messages.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        message: current,
+                        medicines: isLast ? medicines : [],
+                        pharmacies: isLast ? pharmacies : [],
+                      }
+                    : m
+                ),
+              }
+            : chat
+        )
+      );
+    }
+  };
+
+  /* ── Send Message ───────────────────────────────────────────── */
+  const sendMessage = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    let conversationId = activeConversationId;
+
+    if (!conversationId) {
+      conversationId = createId();
+      const chat: Conversation = {
+        id: conversationId,
+        title:
+          trimmed.length > 35 ? `${trimmed.substring(0, 35)}...` : trimmed,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messages: [],
+      };
+
+      setConversations((prev) => [chat, ...prev]);
+      setActiveConversationId(conversationId);
+    }
+
+    const userMessage: ChatMessage = {
+      id: createId(),
+      sender: "user",
+      message: trimmed,
+    };
+
+    const currentMessages =
+      conversations.find((c) => c.id === conversationId)?.messages ?? [];
+
+    setConversations((prev) =>
+      prev.map((chat) =>
+        chat.id === conversationId
+          ? {
+              ...chat,
+              updatedAt: new Date().toISOString(),
+              title:
+                chat.title === "New Chat"
+                  ? trimmed.length > 35
+                    ? `${trimmed.substring(0, 35)}...`
+                    : trimmed
+                  : chat.title,
+              messages: [...chat.messages, userMessage],
+            }
+          : chat
+      )
+    );
+
+    setTyping(true);
+
+    try {
+      const aiMessages: AIMessage[] = [
+        {
+          role: "system",
+          content: `You are AI Medicine Finder.
+
+Rules:
+- Remember previous conversation.
+- Answer follow-up questions.
+- Never forget earlier symptoms.
+- Reply in Markdown.
+- Be concise.
+- Recommend only medicines from the backend.
+- Explain possible causes, medicines and warning signs.`,
+        },
+        ...currentMessages.map(
+          (m): AIMessage => ({
+            role: m.sender === "user" ? "user" : "assistant",
+            content: m.message,
+          })
+        ),
+        { role: "user", content: trimmed },
+      ];
+
+      // ✅ Pass location here
+      const response = await askAI(aiMessages);
+
+      await streamMessage(
+        response.answer,
+        conversationId,
+        response.medicines ?? [],
+        response.pharmacies ?? []
+      );
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage: ChatMessage = {
+        id: createId(),
+        sender: "assistant",
+        message: "❌ Unable to contact the AI server. Please try again.",
+      };
+
+      setConversations((prev) =>
+        prev.map((chat) =>
+          chat.id === conversationId
+            ? { ...chat, messages: [...chat.messages, errorMessage] }
+            : chat
+        )
+      );
+    } finally {
+      setTyping(false);
+    }
+  };
+
+  /* ── Filtered conversations for sidebar ─────────────────────── */
+  const filteredConversations = useMemo(() => {
+    if (!searchTerm.trim()) return conversations;
+
+    const q = searchTerm.toLowerCase();
+    return conversations.filter(
+      (chat) =>
+        chat.title.toLowerCase().includes(q) ||
+        chat.messages.some((m) => m.message.toLowerCase().includes(q))
+    );
+  }, [conversations, searchTerm]);
+
+  /* ── Render ─────────────────────────────────────────────────── */
   return (
-    chat.title.toLowerCase().includes(q) ||
-    chat.messages.some((m) =>
-      m.message.toLowerCase().includes(q)
-    )
-  );
-});
+    <div className="flex h-full overflow-hidden bg-gray-50">
+      <ChatSidebar
+        conversations={filteredConversations}
+        activeConversationId={activeConversationId}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onSelectConversation={setActiveConversationId}
+        onNewChat={startNewChat}
+        onDeleteConversation={deleteConversation}
+        onRenameConversation={renameConversation}
+      />
 
-return (
-  <div className="flex h-screen bg-gray-100 overflow-hidden">
-
-    {/* Sidebar */}
-
-    <ChatSidebar
-      conversations={filteredConversations}
-      activeConversationId={activeConversationId}
-      searchTerm={searchTerm}
-      onSearchChange={setSearchTerm}
-      onSelectConversation={setActiveConversationId}
-      onNewChat={startNewChat}
-      onDeleteConversation={deleteConversation}
-      onRenameConversation={renameConversation}
-    />
-
-    {/* Main */}
-
-    <main className="flex flex-1 flex-col">
-
-      {/* Header */}
-
-      <header className="border-b border-gray-200 bg-white px-8 py-5 shadow-sm">
-
-        <div className="flex items-center justify-between">
-
-          <div>
-
-            <h1 className="text-2xl font-bold text-gray-900">
-              AI Medicine Assistant
-            </h1>
-
-            <p className="text-sm text-gray-500">
-              Ask about medicines, symptoms and pharmacies.
-            </p>
-
-          </div>
-
-          {activeConversation && (
-
-            <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-
-              {activeConversation.title}
-
-            </div>
-
-          )}
-
-        </div>
-
-      </header>
-
-      {/* Chat Area */}
-
-      <section className="flex-1 overflow-y-auto">
-
-        {!activeConversation ||
-        activeConversation.messages.length === 0 ? (
-
-          <div className="flex h-full flex-col items-center justify-center px-6">
-
-            <div className="text-center">
-
-              <div className="mb-6 text-7xl">
-                🩺
-              </div>
-
-              <h2 className="text-5xl font-bold text-gray-900">
-                AI Medicine Finder
-              </h2>
-
-              <p className="mt-4 text-lg text-gray-500">
-                Your intelligent healthcare companion
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="shrink-0 border-b border-gray-200 bg-white px-6 py-4 sm:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
+                AI Medicine Assistant
+              </h1>
+              <p className="text-sm text-gray-500">
+                Ask about medicines, symptoms and pharmacies.
               </p>
-
             </div>
 
-            <div className="mt-12 w-full max-w-3xl">
+            {activeConversation && (
+              <div className="hidden shrink-0 rounded-full bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-700 sm:block">
+                {activeConversation.title}
+              </div>
+            )}
+          </div>
+        </header>
 
-              <SuggestedQuestions
-                onSelect={sendMessage}
-              />
-
+        <section className="min-h-0 flex-1 overflow-y-auto">
+          {!activeConversation || activeConversation.messages.length === 0 ? (
+            <div className="mx-auto flex max-w-5xl flex-col items-center justify-center px-6 py-16 text-center">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Start a new conversation
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-gray-500">
+                Ask about medicines, symptoms, warning signs, or nearby pharmacies.
+              </p>
+              <button
+                type="button"
+                onClick={() => sendMessage("What medicines help with a headache?")}
+                className="mt-6 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                Try a quick prompt
+              </button>
             </div>
+          ) : (
+            <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+              {activeConversation.messages.map((message) => (
+                <ChatBubble key={message.id} message={message} />
+              ))}
 
+              {typing && <TypingIndicator />}
+
+              <div ref={bottomRef} />
+            </div>
+          )}
+        </section>
+
+        <footer className="shrink-0 border-t border-gray-200 bg-white p-4 sm:p-5">
+          <div className="mx-auto max-w-5xl">
+            <ChatInput onSend={sendMessage} />
           </div>
-
-        ) : (
-
-          <div className="mx-auto max-w-5xl px-6 py-8">
-
-            {activeConversation.messages.map((message) => (
-
-              <ChatBubble
-                key={message.id}
-                message={message}
-              />
-
-            ))}
-
-            {typing && <TypingIndicator />}
-
-            <div ref={bottomRef} />
-
-          </div>
-
-        )}
-
-      </section>
-
-      {/* Bottom Input */}
-
-      <footer className="border-t border-gray-200 bg-white p-5">
-
-        <div className="mx-auto max-w-5xl">
-
-          <ChatInput
-            onSend={sendMessage}
-          />
-
-        </div>
-
-      </footer>
-
-    </main>
-
-  </div>
-);
+        </footer>
+      </main>
+    </div>
+  );
 }

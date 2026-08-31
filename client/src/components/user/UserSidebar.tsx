@@ -7,15 +7,16 @@ function UserSidebar() {
   const { logout } = useAuth();
 
   const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: "📊",
-    },
+  
     {
       name: "Search",
       path: "/search",
       icon: "🔍",
+    },
+    {
+      name: "AI Assistant",
+      path: "/ai-assistant",
+      icon: "🤖",
     },
     {
       name: "Medicines",
@@ -27,16 +28,11 @@ function UserSidebar() {
       path: "/pharmacies",
       icon: "🏥",
     },
-    {
-      name: "Inventory",
-      path: "/inventories",
-      icon: "📦",
-    },
-    {
-      name: "AI Assistant",
-      path: "/ai-assistant",
-      icon: "🤖",
-    },
+{
+  name: "Inventory",
+  path: "/admin/inventory",
+  icon: "📦",
+},
     {
       name: "Profile",
       path: "/profile",

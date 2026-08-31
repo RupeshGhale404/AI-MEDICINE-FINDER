@@ -29,11 +29,18 @@ class AIController extends Controller
                 Rule::in(["user", "assistant", "system"]),
             ],
             "messages.*.content" => "required|string|max:4000",
+
+            // ✅ Geolocation (optional)
+            "latitude"  => "nullable|numeric|between:-90,90",
+            "longitude" => "nullable|numeric|between:-180,180",
         ]);
 
         try {
-
-            $reply = $this->aiService->reply($validated["messages"]);
+            $reply = $this->aiService->reply(
+                $validated["messages"],
+                $validated["latitude"] ?? null,
+                $validated["longitude"] ?? null
+            );
 
             return response()->json([
                 "success" => true,
@@ -41,7 +48,6 @@ class AIController extends Controller
             ]);
 
         } catch (Throwable $e) {
-
             Log::error($e);
 
             return response()->json([

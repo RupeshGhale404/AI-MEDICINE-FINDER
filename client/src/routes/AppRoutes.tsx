@@ -32,6 +32,8 @@ import NotFound from "../pages/NotFound/NotFound";
 import ProtectedRoute from "../components/layout/ProtectedRoute";
 import AdminRoute from "../components/layout/AdminRoute";
 import AIAssistant from "../pages/AIAssistant/AIAssistant";
+import Inventory from "../pages/Inventory/Inventory";
+import Profile from "../pages/Profile/Profile";
 
 function AppRoutes() {
   return (
@@ -63,11 +65,27 @@ function AppRoutes() {
           }
         />
         <Route
-  path="/ai-assistant"
+  path="ai-assistant"
   element={
     <ProtectedRoute>
       <AIAssistant />
     </ProtectedRoute>
+  }
+/>
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/inventory"
+  element={
+    <AdminRoute>
+      <Inventory />
+    </AdminRoute>
   }
 />
 
