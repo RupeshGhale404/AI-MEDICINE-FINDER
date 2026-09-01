@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useAnimation, useInView } from "framer-motion";
+import CountUp from "react-countup";
 import type { LucideIcon } from "lucide-react";
 import {
   Pill,
@@ -7,31 +8,6 @@ import {
   Users,
   Package,
 } from "lucide-react";
-
-function CountUp({ start, end, duration, delay, separator }: any) {
-  const [count, setCount] = useState(start);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const steps = 60;
-      const increment = (end - start) / steps;
-      let current = start;
-      const interval = setInterval(() => {
-        current += increment;
-        if (current >= end) {
-          setCount(end);
-          clearInterval(interval);
-        } else {
-          setCount(Math.floor(current));
-        }
-      }, (duration * 1000) / steps);
-      return () => clearInterval(interval);
-    }, delay * 1000);
-    return () => clearTimeout(timer);
-  }, [start, end, duration, delay]);
-
-  return <span>{count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, separator || "")}</span>;
-}
 
 interface StatCard {
   icon: LucideIcon;
@@ -168,7 +144,7 @@ export default function HeroStats({
           <div
             className={`
               absolute inset-0
-              bg-linear-to-br ${card.color}
+              bg-gradient-to-br ${card.color}
               opacity-0
               group-hover:opacity-20
               transition-opacity
