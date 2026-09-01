@@ -598,7 +598,7 @@ PROMPT;
                         'options' => [
                             'temperature' => 0.2,
                             'num_ctx' => 2048,
-                            'num_predict' => 180,
+                            'num_predict' => 150,
                             'top_p' => 0.8,
                             'repeat_penalty' => 1.1,
                         ],
