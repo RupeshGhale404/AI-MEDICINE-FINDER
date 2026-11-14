@@ -37,7 +37,7 @@ import Profile from "../pages/Profile/Profile";
 
 function AppRoutes() {
   return (
-    <BrowserRouter>
+  <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
 
         {/* ================= PUBLIC ROUTES ================= */}
