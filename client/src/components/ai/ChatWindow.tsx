@@ -247,7 +247,11 @@ Rules:
 - Reply in Markdown.
 - Be concise.
 - Recommend only medicines from the backend.
-- Explain possible causes, medicines and warning signs.`,
+- Explain possible causes, medicines and warning signs.${
+            userLocation
+              ? `\n- User location: latitude ${userLocation.lat}, longitude ${userLocation.lng}. Use it when discussing nearby pharmacies.`
+              : ""
+          }`,
         },
         ...currentMessages.map(
           (m): AIMessage => ({

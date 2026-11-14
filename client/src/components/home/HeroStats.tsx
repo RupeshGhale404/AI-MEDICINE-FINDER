@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useAnimation, useInView } from "framer-motion";
 import CountUp from "react-countup";
 import type { LucideIcon } from "lucide-react";
@@ -144,7 +144,7 @@ export default function HeroStats({
           <div
             className={`
               absolute inset-0
-              bg-gradient-to-br ${card.color}
+              bg-linear-to-br ${card.color}
               opacity-0
               group-hover:opacity-20
               transition-opacity

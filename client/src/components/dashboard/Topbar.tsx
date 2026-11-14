@@ -1,3 +1,4 @@
+
 import { Bell, Menu, User } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -7,13 +8,6 @@ interface TopbarProps {
 
 const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { user } = useAuth();
-
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 
   return (
     <header className="bg-white shadow-sm border-b h-16 flex items-center justify-between px-6">
@@ -29,8 +23,8 @@ const Topbar = ({ onMenuClick }: TopbarProps) => {
           </h2>
 
           <p className="text-sm text-gray-500">
-  {user?.role.name}
-</p>
+            {user?.role?.name ?? "Employee"}
+          </p>
         </div>
       </div>
 

@@ -1,8 +1,13 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Local development: /
+  // Production build for GitHub Pages: /AI-MEDICINE-FINDER/
+  base: command === "build" ? "/AI-MEDICINE-FINDER/" : "/",
+
   plugins: [
     react(),
     tailwindcss(),
@@ -17,4 +22,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
